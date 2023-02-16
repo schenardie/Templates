@@ -189,46 +189,133 @@
                             },
                             "type": "ParseJson",
                             "inputs": {
-                                "content": "@body('Select')",
+                                "content": "@body('HTTP_GET_Intune_Audit_Events')",
                                 "schema": {
-                                    "items": {
-                                        "properties": {
-                                            "activityDateTime": {
-                                                "type": "string"
-                                            },
-                                            "activityLocalDateTime": {
-                                                "type": "string"
-                                            },
-                                            "actorDisplayName": {
-                                                "type": "string"
-                                            },
-                                            "actoruserPrincipalName": {},
-                                            "applicationtype": {
-                                                "type": "string"
-                                            },
-                                            "componentName": {
-                                                "type": "string"
-                                            },
-                                            "displayName": {
-                                                "type": "string"
-                                            },
-                                            "resourcesdisplayName": {
-                                                "type": "string"
-                                            }
+                                    "properties": {
+                                        "@@odata.context": {
+                                            "type": "string"
                                         },
-                                        "required": [
-                                            "activityDateTime",
-                                            "activityLocalDateTime",
-                                            "actorDisplayName",
-                                            "actoruserPrincipalName",
-                                            "applicationtype",
-                                            "componentName",
-                                            "displayName",
-                                            "resourcesdisplayName"
-                                        ],
-                                        "type": "object"
+                                        "@@odata.count": {
+                                            "type": "integer"
+                                        },
+                                        "value": {
+                                            "items": {
+                                                "properties": {
+                                                    "activity": {},
+                                                    "activityDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityOperationType": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityResult": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityType": {
+                                                        "type": "string"
+                                                    },
+                                                    "actor": {
+                                                        "properties": {
+                                                            "applicationDisplayName": {
+                                                                "type": "string"
+                                                            },
+                                                            "applicationId": {
+                                                                "type": "string"
+                                                            },
+                                                            "auditActorType": {
+                                                                "type": "string"
+                                                            },
+                                                            "ipAddress": {},
+                                                            "remoteTenantId": {},
+                                                            "remoteUserId": {},
+                                                            "servicePrincipalName": {},
+                                                            "type": {
+                                                                "type": "string"
+                                                            },
+                                                            "userId": {
+                                                                "type": "string"
+                                                            },
+                                                            "userPermissions": {
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "userPrincipalName": {
+                                                                "type": "string"
+                                                            },
+                                                            "userRoleScopeTags": {
+                                                                "type": "array"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "category": {
+                                                        "type": "string"
+                                                    },
+                                                    "componentName": {
+                                                        "type": "string"
+                                                    },
+                                                    "correlationId": {
+                                                        "type": "string"
+                                                    },
+                                                    "displayName": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "resources": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "auditResourceType": {
+                                                                    "type": "string"
+                                                                },
+                                                                "displayName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "modifiedProperties": {
+                                                                    "type": "array"
+                                                                },
+                                                                "resourceId": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "displayName",
+                                                                "type",
+                                                                "auditResourceType",
+                                                                "resourceId",
+                                                                "modifiedProperties"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "displayName",
+                                                    "componentName",
+                                                    "activity",
+                                                    "activityDateTime",
+                                                    "activityType",
+                                                    "activityOperationType",
+                                                    "activityResult",
+                                                    "correlationId",
+                                                    "category",
+                                                    "actor",
+                                                    "resources"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
                                     },
-                                    "type": "array"
+                                    "type": "object"
                                 }
                             }
                         },
