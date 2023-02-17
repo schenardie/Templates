@@ -112,7 +112,7 @@
                                                 "body": {
                                                     "channel": "[parameters('slackChannelName')]",
                                                     "icon_url": "[parameters('Icon URL')]",
-                                                    "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Group assigned to:* @{items('For_each')?['modifiedProperty4']}\n*Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty5']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty6']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}\n",
+                                                    "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Group assigned to:* @{items('For_each')?['modifiedProperty4']}\n*Assignment Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty5']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty6']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}\n*Created by:* @{items('For_each')['actorDisplayName']} - @{items('For_each')['actoruserPrincipalName']}",
                                                     "username": "[parameters('Bot Name')]"
                                                 },
                                                 "host": {
@@ -135,7 +135,7 @@
                                                     "body": {
                                                         "channel": "[parameters('slackChannelName')]",
                                                         "icon_url": "[parameters('Icon URL')]",
-                                                        "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty4']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty5']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}",
+                                                        "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Assignment Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty4']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty5']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}\n*Created by:* @{items('For_each')['actorDisplayName']} - @{items('For_each')['actoruserPrincipalName']}",
                                                         "username": "[parameters('Bot Name')]"
                                                     },
                                                     "host": {
