@@ -222,9 +222,8 @@
                         "$connections": {
                             "value": {
                                 "slack": {
-                                    "connectionId": "[parameters('connections_SlackConnection_externalid')]",
-                                    "connectionName": "SlackConnection",
-                                    "id": "/subscriptions/12bd75d4-ada1-4fe1-ac4a-2f7d549477b6/providers/Microsoft.Web/locations/australiaeast/managedApis/slack"
+                                    "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'slack')]",
+                                    "connectionId": "[resourceId('Microsoft.Web/connections', parameters('slackConnectionName'))]"
                                 }
                             }
                         }
