@@ -234,7 +234,7 @@
                         },
                         "Select": {
                             "runAfter": {
-                                "Parse_JSON": [
+                                "HTTP_GET_Intune_Audit_Events": [
                                     "Succeeded"
                                 ]
                             },
