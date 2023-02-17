@@ -71,208 +71,162 @@
             "identity": {
                 "type": "SystemAssigned"
             },
-            "properties": {
-                "state": "Disabled",
-                "definition": {
-                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-                    "contentVersion": "1.0.0.0",
-                    "parameters": {
-                        "$connections": {
-                            "defaultValue": {},
-                            "type": "Object"
-                        },
-                        "timezone": {
-                            "defaultValue": "[parameters('TimeZone')]",
-                            "type": "String"
-                        }
-                    },
-                    "triggers": {
-                        "Recurrence": {
-                            "recurrence": {
-                                "frequency": "Hour",
-                                "interval": 1
-                            },
-                            "evaluatedRecurrence": {
-                                "frequency": "Hour",
-                                "interval": 1
-                            },
-                            "type": "Recurrence"
-                        }
-                    },
-                    "actions": {
-                        "For_each": {
-                            "foreach": "@body('Parse_JSON_select_values')",
-                            "actions": {
-                                "Condition": {
-                                    "actions": {
-                                        "Post_message_(V2)": {
-                                            "runAfter": {},
-                                            "type": "ApiConnection",
-                                            "inputs": {
-                                                "body": {
-                                                    "channel": "[parameters('slackChannelName')]",
-                                                    "icon_url": "[parameters('Icon URL')]",
-                                                    "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Group assigned to:* @{items('For_each')?['modifiedProperty4']}\n*Assignment Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty5']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty6']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}\n*Created by:* @{items('For_each')['actorDisplayName']} - @{items('For_each')['actoruserPrincipalName']}",
-                                                    "username": "[parameters('Bot Name')]"
-                                                },
-                                                "host": {
-                                                    "connection": {
-                                                        "name": "@parameters('$connections')['slack']['connectionId']"
-                                                    }
-                                                },
-                                                "method": "post",
-                                                "path": "/v2/chat.postMessage"
-                                            }
-                                        }
-                                    },
-                                    "runAfter": {},
-                                    "else": {
-                                        "actions": {
-                                            "Post_message_(V2)_2": {
-                                                "runAfter": {},
-                                                "type": "ApiConnection",
-                                                "inputs": {
-                                                    "body": {
-                                                        "channel": "[parameters('slackChannelName')]",
-                                                        "icon_url": "[parameters('Icon URL')]",
-                                                        "text": ":mag: New application assignments created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')?['modifiedProperty1']}\n*Assignment Type:*  @{items('For_each')?['modifiedProperty0']}\n*Assignment Intent:* @{items('For_each')?['modifiedProperty3']}\n*Filter ID:* @{items('For_each')?['modifiedProperty4']}\n*Filter Intent:* @{items('For_each')?['modifiedProperty5']}\n*Assignment Local Time:* @{items('For_each')?['activityLocalDateTime']}\n*Created by:* @{items('For_each')['actorDisplayName']} - @{items('For_each')['actoruserPrincipalName']}",
-                                                        "username": "[parameters('Bot Name')]"
-                                                    },
-                                                    "host": {
-                                                        "connection": {
-                                                            "name": "@parameters('$connections')['slack']['connectionId']"
-                                                        }
-                                                    },
-                                                    "method": "post",
-                                                    "path": "/v2/chat.postMessage"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "expression": {
-                                        "and": [
-                                            {
-                                                "equals": [
-                                                    "@item()?['modifiedProperty0']",
-                                                    "GroupAssignmentTarget"
-                                                ]
-                                            }
-                                        ]
-                                    },
-                                    "type": "If"
-                                }
-                            },
-                            "runAfter": {
-                                "Parse_JSON_select_values": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Foreach"
-                        },
-                        "HTTP_GET_Intune_Audit_Events": {
-                            "runAfter": {},
-                            "type": "Http",
-                            "inputs": {
-                                "authentication": {
-                                    "audience": "https://graph.microsoft.com",
-                                    "type": "ManagedServiceIdentity"
-                                },
-                                "method": "GET",
-                                "uri": "https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter= activityDateTime%20gt%20@{formatDateTime(addHours(utcNow(),-1),'yyyy-MM-ddTHH:mm:ssZ')}%20and%20category%20eq%20'Application'%20and%20displayName%20eq%20'Create MobileAppAssignment'"
-                            }
-                        },
-                        "Parse_JSON_select_values": {
-                            "runAfter": {
-                                "Select": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "ParseJson",
-                            "inputs": {
-                                "content": "@body('Select')",
-                                "schema": {
-                                    "items": {
-                                        "properties": {
-                                            "activityDateTime": {
-                                                "type": "string"
-                                            },
-                                            "activityLocalDateTime": {
-                                                "type": "string"
-                                            },
-                                            "actorDisplayName": {
-                                                "type": "string"
-                                            },
-                                            "actoruserPrincipalName": {},
-                                            "applicationtype": {
-                                                "type": "string"
-                                            },
-                                            "componentName": {
-                                                "type": "string"
-                                            },
-                                            "displayName": {
-                                                "type": "string"
-                                            },
-                                            "resourcesdisplayName": {
-                                                "type": "string"
-                                            }
-                                        },
-                                        "required": [
-                                            "activityDateTime",
-                                            "activityLocalDateTime",
-                                            "actorDisplayName",
-                                            "actoruserPrincipalName",
-                                            "applicationtype",
-                                            "componentName",
-                                            "displayName",
-                                            "resourcesdisplayName"
-                                        ],
-                                        "type": "object"
-                                    },
-                                    "type": "array"
-                                }
-                            }
-                        },
-                        "Select": {
-                            "runAfter": {
-                                "HTTP_GET_Intune_Audit_Events": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Select",
-                            "inputs": {
-                                "from": "@body('HTTP_GET_Intune_Audit_Events')?['value']",
-                                "select": {
-                                    "activityDateTime": "@item()?['activityDateTime']",
-                                    "activityLocalDateTime": "@formatDateTime(convertTimeZone(item()?['activityDateTime'], 'UTC',parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')",
-                                    "actorDisplayName": "@item()?['actor']?['applicationDisplayName']",
-                                    "actoruserPrincipalName": "@item()?['actor']?['userPrincipalName']",
-                                    "applicationtype": "@item()?['Resources']?[0]?['type']",
-                                    "componentName": "@item()?['componentName']",
-                                    "displayName": "@item()?['displayName']",
-                                    "modifiedProperty0": "@item()?['Resources']?[1]?['modifiedProperties']?[0]?['newValue']",
-                                    "modifiedProperty1": "@item()?['Resources']?[1]?['modifiedProperties']?[1]?['newValue']",
-                                    "modifiedProperty2": "@item()?['Resources']?[1]?['modifiedProperties']?[2]?['newValue']",
-                                    "modifiedProperty3": "@item()?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']",
-                                    "modifiedProperty4": "@uriComponentToString(replace(uriComponent(item()?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']), '%0A', ''))",
-                                    "modifiedProperty5": "@item()?['Resources']?[1]?['modifiedProperties']?[5]?['newValue']",
-                                    "modifiedProperty6": "@item()?['Resources']?[1]?['modifiedProperties']?[6]?['newValue']",
-                                    "resourcesdisplayName": "@item()['Resources']?[0]?['displayName']"
-                                }
-                            }
-                        }
-                    },
-                    "outputs": {}
-                },
+            "state": "Disabled",
+            "definition": {
+                "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                "contentVersion": "1.0.0.0",
                 "parameters": {
                     "$connections": {
-                        "value": {
-                            "slack": {
-                                "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'slack')]",
-                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('slackConnectionName'))]"
+                        "defaultValue": {},
+                        "type": "Object"
+                    },
+                    "timezone": {
+                        "defaultValue": "[parameters('TimeZone')]",
+                        "type": "String"
+                    }
+                },
+                "triggers": {
+                    "Recurrence": {
+                        "recurrence": {
+                            "frequency": "Hour",
+                            "interval": 1
+                        },
+                        "evaluatedRecurrence": {
+                            "frequency": "Hour",
+                            "interval": 1
+                        },
+                        "type": "Recurrence"
+                    }
+                },
+                "actions": {
+                    "For_each": {
+                        "foreach": "@body('Parse_JSON_select_values')",
+                        "actions": {
+                            "Post_message_(V2)": {
+                                "runAfter": {},
+                                "type": "ApiConnection",
+                                "inputs": {
+                                    "body": {
+                                        "channel": "[parameters('slackChannelName')]",
+                                        "icon_url": "[parameters('Icon URL')]",
+                                        "text": ":mag: New application created on Intune :mag:\n\n*Application Name:* @{items('For_each')['resourcesdisplayName']}\n*Application Type:* @{items('For_each')['applicationtype']}\n*Created by:* @{items('For_each')['actorDisplayName']} - @{items('For_each')['actoruserPrincipalName']}\n*Createion Local Time:* @{items('For_each')?['activityLocalDateTime']}\n",
+                                        "username": "[parameters('Bot Name')]"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['slack']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/v2/chat.postMessage"
+                                }
+                            }
+                        },
+                        "runAfter": {
+                            "Parse_JSON_select_values": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "HTTP_GET_Intune_Audit_Events": {
+                        "runAfter": {},
+                        "type": "Http",
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://graph.microsoft.com",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "method": "GET",
+                            "uri": "https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter= activityDateTime%20gt%20@{formatDateTime(addHours(utcNow(),-1),'yyyy-MM-ddTHH:mm:ssZ')}%20and%20category%20eq%20'Application'%20and%20displayName%20eq%20'Create application.'"
+                        }
+                    },
+                    "Parse_JSON_select_values": {
+                        "runAfter": {
+                            "Select": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson",
+                        "inputs": {
+                            "content": "@body('Select')",
+                            "schema": {
+                                "items": {
+                                    "properties": {
+                                        "activityDateTime": {
+                                            "type": "string"
+                                        },
+                                        "activityLocalDateTime": {
+                                            "type": "string"
+                                        },
+                                        "actorDisplayName": {
+                                            "type": "string"
+                                        },
+                                        "actoruserPrincipalName": {},
+                                        "applicationtype": {
+                                            "type": "string"
+                                        },
+                                        "componentName": {
+                                            "type": "string"
+                                        },
+                                        "displayName": {
+                                            "type": "string"
+                                        },
+                                        "resourcesdisplayName": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "activityDateTime",
+                                        "activityLocalDateTime",
+                                        "actorDisplayName",
+                                        "actoruserPrincipalName",
+                                        "applicationtype",
+                                        "componentName",
+                                        "displayName",
+                                        "resourcesdisplayName"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        }
+                    },
+                    "Select": {
+                        "runAfter": {
+                            "HTTP_GET_Intune_Audit_Events": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Select",
+                        "inputs": {
+                            "from": "@body('HTTP_GET_Intune_Audit_Events')?['value']",
+                            "select": {
+                                "activityDateTime": "@item()?['activityDateTime']",
+                                "activityLocalDateTime": "@formatDateTime(convertTimeZone(item()?['activityDateTime'], 'UTC',parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')",
+                                "actorDisplayName": "@item()?['actor']?['applicationDisplayName']",
+                                "actoruserPrincipalName": "@item()?['actor']?['userPrincipalName']",
+                                "applicationtype": "@item()?['Resources']?[0]?['type']",
+                                "componentName": "@item()?['componentName']",
+                                "displayName": "@item()?['displayName']",
+                                "resourcesdisplayName": "@item()['Resources']?[0]?['displayName']"
                             }
                         }
                     }
+                },
+                "outputs": {}
+            },
+            "parameters": {
+                "$connections": {
+                    "value": {
+                        "slack": {
+                            "connectionId": "[parameters('connections_SlackConnection_externalid')]",
+                            "connectionName": "SlackConnection",
+                            "id": "/subscriptions/12bd75d4-ada1-4fe1-ac4a-2f7d549477b6/providers/Microsoft.Web/locations/australiaeast/managedApis/slack"
+                        }
+                    }
                 }
+            }
             }
         }
     ]
