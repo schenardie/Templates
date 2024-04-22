@@ -1,0 +1,1756 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "keyVaultName": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+            "description": "Key Vaults need to be globally unique."
+            }
+        },
+        "LogicAppName": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "SlackWebhook": {
+            "type": "securestring",
+            "metadata": {
+              "description": "Slack Webhook"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+              "description": "Location for all resources."
+            }
+        },
+        "Timezone": {
+            "type": "string",
+            "defaultValue": "AUS Eastern Standard Time",
+            "metadata": {
+              "description": "Please refer to Timzone full name."
+            }
+        },
+        "Recurrence": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+              "description": "Please define how often you would like your logic app to run (in hours)"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2023-07-01",
+            "name": "[parameters('keyVaultName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "Standard"
+                },
+                "tenantId": "[subscription().tenantid]",
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantid]",
+                        "objectId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('LogicAppName')), '2019-05-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "certificates": [],
+                            "keys": [],
+                            "secrets": [
+                                "get",
+                                "list"
+                            ]
+                        }
+                    }
+                ],
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "enableRbacAuthorization": false,
+                "enablePurgeProtection": true,
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('keyVaultName')]",
+            "location": "[parameters('location')]",
+            "kind": "V1",
+            "properties": {
+                "displayName": "[parameters('keyVaultName')]",
+                "parameterValueType": "Alternative",
+                "alternativeParameterValues": {
+                    "vaultName": "[parameters('keyVaultName')]"
+                },
+                "customParameterValues": {},
+                "api": {
+                    "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'keyvault')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2023-07-01",
+            "name": "[concat(parameters('keyVaultName'), '/SlackWebhook')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            ],
+            "properties": {
+                "value": "[parameters('SlackWebhook')]",
+                "attributes": {
+                    "enabled": true
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('LogicAppName')]",
+            "location": "[parameters('location')]",
+						  
+																								 
+			  
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Disabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        },
+									 
+																	   
+											
+						  
+                        "recurrence": {
+                            "defaultValue": "[parameters('Recurrence')]",
+                            "type": "Int"
+                        },
+                        "timezone": {
+                            "defaultValue": "[parameters('Timezone')]",
+                            "type": "String"
+                        }
+                    },
+                    "triggers": {
+                        "Recurrence": {
+                            "recurrence": {
+                                "frequency": "Hour",
+                                "interval": "@parameters('recurrence')"
+                            },
+                            "evaluatedRecurrence": {
+                                "frequency": "Hour",
+                                "interval": 1
+                            },
+                            "type": "Recurrence"
+                        }
+                    },
+                    "actions": {
+                        "For_each_assignment": {
+                            "foreach": "@body('Parse_JSON_App_Assignments')?['value']",
+                            "actions": {
+                                "Switch": {
+                                    "runAfter": {
+                                        "Switch_AppType_Assignments": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "cases": {
+                                        "All_Devices": {
+                                            "case": "AllDevicesAssignmentTarget",
+                                            "actions": {
+                                                "AD_-_Test_filter_assignment_for_devices": {
+                                                    "actions": {
+                                                        "AD_-_Slack_Notif_app_assignment_without_filter": {
+                                                            "runAfter": {},
+                                                            "type": "Http",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "blocks": [
+                                                                        {
+                                                                            "text": {
+                                                                                "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                "type": "plain_text"
+                                                                            },
+                                                                            "type": "header"
+                                                                        },
+                                                                        {
+                                                                            "fields": [
+                                                                                {
+                                                                                    "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Type:*\nIntune Group",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Group Name:*\nAll Devices",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Name:*\nNo filters assigned",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Intent:*\n",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                    "type": "mrkdwn"
+                                                                                }
+                                                                            ],
+                                                                            "type": "section"
+                                                                        },
+                                                                        {
+                                                                            "elements": [
+                                                                                {
+                                                                                    "text": {
+                                                                                        "emoji": true,
+                                                                                        "text": "Open in Intune",
+                                                                                        "type": "plain_text"
+                                                                                    },
+                                                                                    "type": "button",
+                                                                                    "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                    "value": "click_me_123"
+                                                                                }
+                                                                            ],
+                                                                            "type": "actions"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "headers": {
+                                                                    "Content-type": "application/json"
+                                                                },
+                                                                "method": "POST",
+                                                                "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {},
+                                                    "else": {
+                                                        "actions": {
+                                                            "AD_-_Get_filter_for_devices": {
+                                                                "runAfter": {},
+                                                                "type": "Http",
+                                                                "inputs": {
+                                                                    "authentication": {
+                                                                        "audience": "https://graph.microsoft.com",
+                                                                        "type": "ManagedServiceIdentity"
+                                                                    },
+                                                                    "method": "GET",
+                                                                    "uri": "https://graph.microsoft.com/beta/deviceManagement/assignmentFilters/@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']}"
+                                                                }
+                                                            },
+                                                            "AD_-_Parse_Filter_Information_for_devices": {
+                                                                "runAfter": {
+                                                                    "AD_-_Get_filter_for_devices": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "ParseJson",
+                                                                "inputs": {
+                                                                    "content": "@body('AD_-_Get_filter_for_devices')",
+                                                                    "schema": {
+                                                                        "properties": {
+                                                                            "@@odata.context": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "assignmentFilterManagementType": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "createdDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "description": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "displayName": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "id": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "lastModifiedDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "payloads": {
+                                                                                "type": "array"
+                                                                            },
+                                                                            "platform": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "roleScopeTags": {
+                                                                                "items": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "type": "array"
+                                                                            },
+                                                                            "rule": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "AD_-_Slack_Notif_app_assignment_with_filter": {
+                                                                "runAfter": {
+                                                                    "AD_-_Parse_Filter_Information_for_devices": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "Http",
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "blocks": [
+                                                                            {
+                                                                                "text": {
+                                                                                    "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                    "type": "plain_text"
+                                                                                },
+                                                                                "type": "header"
+                                                                            },
+                                                                            {
+                                                                                "fields": [
+                                                                                    {
+                                                                                        "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Type:*\nIntune Group",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Group Name:*\nAll Devices",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Name:*\n",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[6]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "section"
+                                                                            },
+                                                                            {
+                                                                                "elements": [
+                                                                                    {
+                                                                                        "text": {
+                                                                                            "emoji": true,
+                                                                                            "text": "Open in Intune",
+                                                                                            "type": "plain_text"
+                                                                                        },
+                                                                                        "type": "button",
+                                                                                        "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                        "value": "click_me_123"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "actions"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "headers": {
+                                                                        "Content-type": "application/json"
+                                                                    },
+                                                                    "method": "POST",
+                                                                    "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']",
+                                                                    "<null>"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                }
+                                            }
+                                        },
+                                        "All_Users": {
+                                            "case": "AllLicensedUsersAssignmentTarget",
+                                            "actions": {
+                                                "AU_-_Test_filter_assignment_for_users": {
+                                                    "actions": {
+                                                        "AU_-_Slack_Notif_app_assignment_without_filter": {
+                                                            "runAfter": {},
+                                                            "type": "Http",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "blocks": [
+                                                                        {
+                                                                            "text": {
+                                                                                "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                "type": "plain_text"
+                                                                            },
+                                                                            "type": "header"
+                                                                        },
+                                                                        {
+                                                                            "fields": [
+                                                                                {
+                                                                                    "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Type:*\nIntune Group",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Group Name:*\nAll Users",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Name:*\nNo filters assigned",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Intent:*\n",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                    "type": "mrkdwn"
+                                                                                }
+                                                                            ],
+                                                                            "type": "section"
+                                                                        },
+                                                                        {
+                                                                            "elements": [
+                                                                                {
+                                                                                    "text": {
+                                                                                        "emoji": true,
+                                                                                        "text": "Open in Intune",
+                                                                                        "type": "plain_text"
+                                                                                    },
+                                                                                    "type": "button",
+                                                                                    "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                    "value": "click_me_123"
+                                                                                }
+                                                                            ],
+                                                                            "type": "actions"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "headers": {
+                                                                    "Content-type": "application/json"
+                                                                },
+                                                                "method": "POST",
+                                                                "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {},
+                                                    "else": {
+                                                        "actions": {
+                                                            "AU_-_Get_filter_for_users": {
+                                                                "runAfter": {},
+                                                                "type": "Http",
+                                                                "inputs": {
+                                                                    "authentication": {
+                                                                        "audience": "https://graph.microsoft.com",
+                                                                        "type": "ManagedServiceIdentity"
+                                                                    },
+                                                                    "method": "GET",
+                                                                    "uri": "https://graph.microsoft.com/beta/deviceManagement/assignmentFilters/@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']}"
+                                                                }
+                                                            },
+                                                            "AU_-_Parse_Filter_Information_for_users": {
+                                                                "runAfter": {
+                                                                    "AU_-_Get_filter_for_users": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "ParseJson",
+                                                                "inputs": {
+                                                                    "content": "@body('AU_-_Get_filter_for_users')",
+                                                                    "schema": {
+                                                                        "properties": {
+                                                                            "@@odata.context": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "assignmentFilterManagementType": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "createdDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "description": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "displayName": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "id": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "lastModifiedDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "payloads": {
+                                                                                "type": "array"
+                                                                            },
+                                                                            "platform": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "roleScopeTags": {
+                                                                                "items": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "type": "array"
+                                                                            },
+                                                                            "rule": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "AU_-_Slack_Notif_app_assignment_with_filter": {
+                                                                "runAfter": {
+                                                                    "AU_-_Parse_Filter_Information_for_users": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "Http",
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "blocks": [
+                                                                            {
+                                                                                "text": {
+                                                                                    "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                    "type": "plain_text"
+                                                                                },
+                                                                                "type": "header"
+                                                                            },
+                                                                            {
+                                                                                "fields": [
+                                                                                    {
+                                                                                        "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Type:*\nIntune Group",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Group Name:*\nAll Users",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Name:*\n",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[6]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "section"
+                                                                            },
+                                                                            {
+                                                                                "elements": [
+                                                                                    {
+                                                                                        "text": {
+                                                                                            "emoji": true,
+                                                                                            "text": "Open in Intune",
+                                                                                            "type": "plain_text"
+                                                                                        },
+                                                                                        "type": "button",
+                                                                                        "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                        "value": "click_me_123"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "actions"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "headers": {
+                                                                        "Content-type": "application/json"
+                                                                    },
+                                                                    "method": "POST",
+                                                                    "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']",
+                                                                    "<null>"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                }
+                                            }
+                                        },
+                                        "Group_Assignment": {
+                                            "case": "GroupAssignmentTarget",
+                                            "actions": {
+                                                "GA_-_Get_group_name": {
+                                                    "runAfter": {},
+                                                    "type": "Http",
+                                                    "inputs": {
+                                                        "authentication": {
+                                                            "audience": "https://graph.microsoft.com",
+                                                            "type": "ManagedServiceIdentity"
+                                                        },
+                                                        "method": "GET",
+                                                        "uri": "https://graph.microsoft.com/beta/groups/@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[4]?['newValue']}"
+                                                    }
+                                                },
+                                                "GA_-_Parse_group_information_groups": {
+                                                    "runAfter": {
+                                                        "GA_-_Get_group_name": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "type": "ParseJson",
+                                                    "inputs": {
+                                                        "content": "@body('GA_-_Get_group_name')",
+                                                        "schema": {
+                                                            "properties": {
+                                                                "@@odata.context": {
+                                                                    "type": "string"
+                                                                },
+                                                                "classification": {},
+                                                                "createdByAppId": {
+                                                                    "type": "string"
+                                                                },
+                                                                "createdDateTime": {
+                                                                    "type": "string"
+                                                                },
+                                                                "deletedDateTime": {},
+                                                                "description": {},
+                                                                "displayName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "expirationDateTime": {},
+                                                                "groupTypes": {
+                                                                    "type": "array"
+                                                                },
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "infoCatalogs": {
+                                                                    "type": "array"
+                                                                },
+                                                                "isAssignableToRole": {},
+                                                                "isManagementRestricted": {},
+                                                                "mail": {},
+                                                                "mailEnabled": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "mailNickname": {
+                                                                    "type": "string"
+                                                                },
+                                                                "membershipRule": {},
+                                                                "membershipRuleProcessingState": {},
+                                                                "onPremisesDomainName": {},
+                                                                "onPremisesLastSyncDateTime": {},
+                                                                "onPremisesNetBiosName": {},
+                                                                "onPremisesObjectIdentifier": {},
+                                                                "onPremisesProvisioningErrors": {
+                                                                    "type": "array"
+                                                                },
+                                                                "onPremisesSamAccountName": {},
+                                                                "onPremisesSecurityIdentifier": {},
+                                                                "onPremisesSyncEnabled": {},
+                                                                "organizationId": {
+                                                                    "type": "string"
+                                                                },
+                                                                "preferredDataLocation": {},
+                                                                "preferredLanguage": {},
+                                                                "proxyAddresses": {
+                                                                    "type": "array"
+                                                                },
+                                                                "renewedDateTime": {
+                                                                    "type": "string"
+                                                                },
+                                                                "resourceBehaviorOptions": {
+                                                                    "type": "array"
+                                                                },
+                                                                "resourceProvisioningOptions": {
+                                                                    "type": "array"
+                                                                },
+                                                                "securityEnabled": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "securityIdentifier": {
+                                                                    "type": "string"
+                                                                },
+                                                                "serviceProvisioningErrors": {
+                                                                    "type": "array"
+                                                                },
+                                                                "theme": {},
+                                                                "uniqueName": {},
+                                                                "visibility": {},
+                                                                "writebackConfiguration": {
+                                                                    "properties": {
+                                                                        "isEnabled": {},
+                                                                        "onPremisesGroupType": {}
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "GA_-_Test_Filter_Assignment_Group": {
+                                                    "actions": {
+                                                        "GA_-_Slack_Notif_app_assignment_without_filter": {
+                                                            "runAfter": {},
+                                                            "type": "Http",
+                                                            "inputs": {
+                                                                "body": {
+                                                                    "blocks": [
+                                                                        {
+                                                                            "text": {
+                                                                                "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                "type": "plain_text"
+                                                                            },
+                                                                            "type": "header"
+                                                                        },
+                                                                        {
+                                                                            "fields": [
+                                                                                {
+                                                                                    "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Type:*\nEntra Group",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Group Name:*\n@{body('GA_-_Parse_group_information_groups')?['displayName']}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Name:*\nNo filters assigned",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Filter Intent:*\n",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                    "type": "mrkdwn"
+                                                                                },
+                                                                                {
+                                                                                    "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                    "type": "mrkdwn"
+                                                                                }
+                                                                            ],
+                                                                            "type": "section"
+                                                                        },
+                                                                        {
+                                                                            "elements": [
+                                                                                {
+                                                                                    "text": {
+                                                                                        "emoji": true,
+                                                                                        "text": "Open in Intune",
+                                                                                        "type": "plain_text"
+                                                                                    },
+                                                                                    "type": "button",
+                                                                                    "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                    "value": "click_me_123"
+                                                                                }
+                                                                            ],
+                                                                            "type": "actions"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "headers": {
+                                                                    "Content-type": "application/json"
+                                                                },
+                                                                "method": "POST",
+                                                                "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                            }
+                                                        }
+                                                    },
+                                                    "runAfter": {
+                                                        "GA_-_Parse_group_information_groups": [
+                                                            "Succeeded"
+                                                        ]
+                                                    },
+                                                    "else": {
+                                                        "actions": {
+                                                            "GA_-_Parse_Filter_Information_for_groups": {
+                                                                "runAfter": {
+                                                                    "Until": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "ParseJson",
+                                                                "inputs": {
+                                                                    "content": "@body('GA_-_Get_filter_for_groups')",
+                                                                    "schema": {
+                                                                        "properties": {
+                                                                            "@@odata.context": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "assignmentFilterManagementType": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "createdDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "description": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "displayName": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "id": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "lastModifiedDateTime": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "payloads": {
+                                                                                "type": "array"
+                                                                            },
+                                                                            "platform": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "roleScopeTags": {
+                                                                                "items": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "type": "array"
+                                                                            },
+                                                                            "rule": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "GA_-_Slack_Notif_app_assignment_with_filter": {
+                                                                "runAfter": {
+                                                                    "GA_-_Parse_Filter_Information_for_groups": [
+                                                                        "Succeeded"
+                                                                    ]
+                                                                },
+                                                                "type": "Http",
+                                                                "inputs": {
+                                                                    "body": {
+                                                                        "blocks": [
+                                                                            {
+                                                                                "text": {
+                                                                                    "text": "New Application Assignment: @{items('For_each_assignment')?['Resources']?[0]?['displayName']}",
+                                                                                    "type": "plain_text"
+                                                                                },
+                                                                                "type": "header"
+                                                                            },
+                                                                            {
+                                                                                "fields": [
+                                                                                    {
+                                                                                        "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Type:*\nEntra Group",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Group Name:*\n@{body('GA_-_Parse_group_information_groups')?['displayName']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[3]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Name:*\n@{body('GA_-_Parse_Filter_Information_for_groups')?['displayName']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Filter Intent:*\n@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[6]?['newValue']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Assignment time:*\n@{formatDateTime(convertTimeZone(items('For_each_assignment')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                                                        "type": "mrkdwn"
+                                                                                    },
+                                                                                    {
+                                                                                        "text": "*Created by:*\n@{items('For_each_assignment')?['actor']?['applicationDisplayName']} @{items('For_each_assignment')?['actor']?['userPrincipalName']}",
+                                                                                        "type": "mrkdwn"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "section"
+                                                                            },
+                                                                            {
+                                                                                "elements": [
+                                                                                    {
+                                                                                        "text": {
+                                                                                            "emoji": true,
+                                                                                            "text": "Open in Intune",
+                                                                                            "type": "plain_text"
+                                                                                        },
+                                                                                        "type": "button",
+                                                                                        "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_assignment')?['Resources']?[0]?['resourceId']}",
+                                                                                        "value": "click_me_123"
+                                                                                    }
+                                                                                ],
+                                                                                "type": "actions"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "headers": {
+                                                                        "Content-type": "application/json"
+                                                                    },
+                                                                    "method": "POST",
+                                                                    "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                                                }
+                                                            },
+                                                            "Until": {
+                                                                "actions": {
+                                                                    "GA_-_Get_filter_for_groups": {
+                                                                        "runAfter": {},
+                                                                        "type": "Http",
+                                                                        "inputs": {
+                                                                            "authentication": {
+                                                                                "audience": "https://graph.microsoft.com",
+                                                                                "type": "ManagedServiceIdentity"
+                                                                            },
+                                                                            "method": "GET",
+                                                                            "uri": "https://graph.microsoft.com/beta/deviceManagement/assignmentFilters/@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[5]?['newValue']}"
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "runAfter": {},
+                                                                "expression": "@equals('', 200)",
+                                                                "limit": {
+                                                                    "count": 60,
+                                                                    "timeout": "PT10M"
+                                                                },
+                                                                "type": "Until"
+                                                            }
+                                                        }
+                                                    },
+                                                    "expression": {
+                                                        "and": [
+                                                            {
+                                                                "equals": [
+                                                                    "@items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[5]?['newValue']",
+                                                                    "<null>"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "type": "If"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "default": {
+                                        "actions": {}
+                                    },
+                                    "expression": "@items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[0]?['newValue']",
+                                    "type": "Switch"
+                                },
+                                "Switch_AppType_Assignments": {
+                                    "runAfter": {},
+                                    "cases": {
+                                        "IosStoreAppAssignmentSettings": {
+                                            "case": "IosStoreAppAssignmentSettings",
+                                            "actions": {
+                                                "Set_variable_4": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "iOS store app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "Win32CatalogAppAssignmentSettings": {
+                                            "case": "Win32CatalogAppAssignmentSettings",
+                                            "actions": {
+                                                "Set_variable_3": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Windows catalog app (Win32)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "Win32LobAppAssignmentSettings": {
+                                            "case": "Win32LobAppAssignmentSettings",
+                                            "actions": {
+                                                "Set_variable_2": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Windows app (Win32)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "WinGetAppAssignmentSettings": {
+                                            "case": "WinGetAppAssignmentSettings",
+                                            "actions": {
+                                                "Set_variable": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Microsoft Store app (new)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "iosVppApp": {
+                                            "case": "iosVppApp",
+                                            "actions": {
+                                                "Set_variable_5": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "iOS volume purchase program app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOSLobApp_": {
+                                            "case": "macOSLobApp",
+                                            "actions": {
+                                                "Set_variable_8": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS line-of-business app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOSPkgApp": {
+                                            "case": "macOSPkgApp",
+                                            "actions": {
+                                                "Set_variable_6": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS app (PKG)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOsVppApp_": {
+                                            "case": "macOsVppApp",
+														
+																	
+																   
+																		  
+															   
+																				   
+																									
+													 
+												 
+											 
+										  
+																		  
+																					
+                                            "actions": {
+                                                "Set_variable_7": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS volume purchase program app"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "default": {
+                                        "actions": {
+                                            "Set_variable_9": {
+                                                "runAfter": {},
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                    "name": "Application Type",
+                                                    "value": "@{items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[1]?['newValue']}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "expression": "@items('For_each_assignment')?['Resources']?[1]?['modifiedProperties']?[1]?['newValue']",
+                                    "type": "Switch"
+                                }
+                            },
+                            "runAfter": {
+                                "Parse_JSON_App_Assignments": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach",
+                            "runtimeConfiguration": {
+                                "concurrency": {
+                                    "repetitions": 1
+                                }
+                            }
+                        },
+                        "For_each_creation": {
+                            "foreach": "@body('Parse_JSON_App_Creations')?['value']",
+                            "actions": {
+                                "Slack_Notif_app_creation": {
+                                    "runAfter": {
+                                        "Switch_AppType_Creations": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Http",
+                                    "inputs": {
+                                        "body": {
+                                            "blocks": [
+                                                {
+                                                    "text": {
+                                                        "text": "New Application Creation: @{items('For_each_creation')?['Resources']?[0]?['displayName']}",
+                                                        "type": "plain_text"
+                                                    },
+                                                    "type": "header"
+                                                },
+                                                {
+                                                    "fields": [
+                                                        {
+                                                            "text": "*Application Type:*\n@{variables('Application Type')}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Created by:*\n@{items('For_each_creation')?['actor']?['applicationDisplayName']} @{items('For_each_creation')?['actor']?['userPrincipalName']}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Creation time:*\n@{formatDateTime(convertTimeZone(items('For_each_creation')?['activityDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                            "type": "mrkdwn"
+                                                        }
+                                                    ],
+                                                    "type": "section"
+                                                },
+                                                {
+                                                    "elements": [
+                                                        {
+                                                            "text": {
+                                                                "emoji": true,
+                                                                "text": "Open in Intune",
+                                                                "type": "plain_text"
+                                                            },
+                                                            "type": "button",
+                                                            "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Apps/SettingsMenu/~/0/appId/@{items('For_each_creation')?['Resources']?[0]?['resourceId']}",
+                                                            "value": "click_me_123"
+                                                        }
+                                                    ],
+                                                    "type": "actions"
+                                                }
+                                            ]
+                                        },
+                                        "headers": {
+                                            "Content-type": "application/json"
+                                        },
+                                        "method": "POST",
+                                        "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                    }
+                                },
+                                "Switch_AppType_Creations": {
+                                    "runAfter": {},
+                                    "cases": {
+                                        "IosStoreApp": {
+                                            "case": "IosStoreApp",
+                                            "actions": {
+                                                "Set_variable_11": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "iOS store app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "Win32CatalogApp": {
+                                            "case": "Win32CatalogApp",
+                                            "actions": {
+                                                "Set_variable_12": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Windows catalog app (Win32)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "Win32LobApp": {
+                                            "case": "Win32LobApp",
+                                            "actions": {
+                                                "Set_variable_13": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Windows app (Win32)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "WinGetApp": {
+                                            "case": "WinGetApp",
+                                            "actions": {
+                                                "Set_variable14": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "Microsoft Store app (new)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "iosVppApp": {
+                                            "case": "iosVppApp",
+                                            "actions": {
+                                                "Set_variable_15": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "iOS volume purchase program app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOSLobApp": {
+                                            "case": "macOSLobApp",
+                                            "actions": {
+                                                "Set_variable_16": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS line-of-business app"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOSPkgApp": {
+                                            "case": "macOSPkgApp",
+                                            "actions": {
+                                                "Set_variable_17": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS app (PKG)"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "macOsVppApp_": {
+                                            "case": "macOsVppApp",
+                                            "actions": {
+                                                "Set_variable_18": {
+                                                    "runAfter": {},
+                                                    "type": "SetVariable",
+                                                    "inputs": {
+                                                        "name": "Application Type",
+                                                        "value": "macOS volume purchase program app"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "default": {
+                                        "actions": {
+                                            "Set_variable_19": {
+                                                "runAfter": {},
+                                                "type": "SetVariable",
+                                                "inputs": {
+                                                    "name": "Application Type",
+                                                    "value": "@{items('For_each_creation')?['Resources']?[1]?['modifiedProperties']?[1]?['newValue']}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "expression": "@items('For_each_creation')?['Resources']?[0]?['type']",
+                                    "type": "Switch"
+                                }
+                            },
+                            "runAfter": {
+                                "Parse_JSON_App_Creations": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach",
+                            "runtimeConfiguration": {
+                                "concurrency": {
+                                    "repetitions": 1
+                                }
+                            }
+                        },
+                        "Get_Slack_Webhook_secret": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/secrets/@{encodeURIComponent('SlackWebhook')}/value"
+                            }
+                        },
+                        "HTTP_GET_Intune_Audit_Events_App_Assignments": {
+                            "runAfter": {
+                                "Initialize_Application_Type_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "authentication": {
+                                    "audience": "https://graph.microsoft.com",
+                                    "type": "ManagedServiceIdentity"
+                                },
+                                "method": "GET",
+                                "uri": "https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter= activityDateTime%20gt%20@{formatDateTime(subtractFromTime(utcNow(),int(parameters('recurrence')),'Hour'),'yyyy-MM-ddTHH:mm:ssZ')}%20and%20category%20eq%20'Application'%20and%20displayName%20eq%20'Create MobileAppAssignment'"
+                            }
+                        },
+                        "HTTP_GET_Intune_Audit_Events_App_Creations": {
+                            "runAfter": {
+                                "Initialize_Application_Type_variable": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "authentication": {
+                                    "audience": "https://graph.microsoft.com",
+                                    "type": "ManagedServiceIdentity"
+                                },
+                                "method": "GET",
+                                "uri": "https://graph.microsoft.com/beta/deviceManagement/auditEvents?$filter= activityDateTime%20gt%20@{formatDateTime(subtractFromTime(utcNow(),int(parameters('recurrence')),'Hour'),'yyyy-MM-ddTHH:mm:ssZ')}%20and%20category%20eq%20'Application'%20and%20displayName%20eq%20'Create application.'"
+                            }
+                        },
+                        "Initialize_Application_Type_variable": {
+                            "runAfter": {
+                                "Get_Slack_Webhook_secret": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "Application Type",
+                                        "type": "string",
+                                        "value": "@{null}"
+                                    }
+                                ]
+                            }
+                        },
+                        "Parse_JSON_App_Assignments": {
+                            "runAfter": {
+                                "HTTP_GET_Intune_Audit_Events_App_Assignments": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@body('HTTP_GET_Intune_Audit_Events_App_Assignments')",
+                                "schema": {
+                                    "properties": {
+                                        "@@odata.context": {
+                                            "type": "string"
+                                        },
+                                        "@@odata.count": {
+                                            "type": "integer"
+                                        },
+                                        "value": {
+                                            "items": {
+                                                "properties": {
+                                                    "activity": {},
+                                                    "activityDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityOperationType": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityResult": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityType": {
+                                                        "type": "string"
+                                                    },
+                                                    "actor": {
+                                                        "properties": {
+                                                            "applicationDisplayName": {
+                                                                "type": "string"
+                                                            },
+                                                            "applicationId": {
+                                                                "type": "string"
+                                                            },
+                                                            "auditActorType": {
+                                                                "type": "string"
+                                                            },
+                                                            "ipAddress": {},
+                                                            "remoteTenantId": {},
+                                                            "remoteUserId": {},
+                                                            "servicePrincipalName": {},
+                                                            "type": {
+                                                                "type": "string"
+                                                            },
+                                                            "userId": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "userPermissions": {
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "userPrincipalName": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "userRoleScopeTags": {
+                                                                "type": "array"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "category": {
+                                                        "type": "string"
+                                                    },
+                                                    "componentName": {
+                                                        "type": "string"
+                                                    },
+                                                    "correlationId": {
+                                                        "type": "string"
+                                                    },
+                                                    "displayName": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "resources": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "auditResourceType": {
+                                                                    "type": "string"
+                                                                },
+                                                                "displayName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "modifiedProperties": {
+                                                                    "type": "array"
+                                                                },
+                                                                "resourceId": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "displayName",
+                                                                "type",
+                                                                "auditResourceType",
+                                                                "resourceId",
+                                                                "modifiedProperties"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "displayName",
+                                                    "componentName",
+                                                    "activity",
+                                                    "activityDateTime",
+                                                    "activityType",
+                                                    "activityOperationType",
+                                                    "activityResult",
+                                                    "correlationId",
+                                                    "category",
+                                                    "actor",
+                                                    "resources"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "Parse_JSON_App_Creations": {
+                            "runAfter": {
+                                "HTTP_GET_Intune_Audit_Events_App_Creations": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@body('HTTP_GET_Intune_Audit_Events_App_Creations')",
+                                "schema": {
+                                    "properties": {
+                                        "@@odata.context": {
+                                            "type": "string"
+                                        },
+                                        "@@odata.count": {
+                                            "type": "integer"
+                                        },
+                                        "value": {
+                                            "items": {
+                                                "properties": {
+                                                    "activity": {},
+                                                    "activityDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityOperationType": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityResult": {
+                                                        "type": "string"
+                                                    },
+                                                    "activityType": {
+                                                        "type": "string"
+                                                    },
+                                                    "actor": {
+                                                        "properties": {
+                                                            "applicationDisplayName": {
+                                                                "type": "string"
+                                                            },
+                                                            "applicationId": {
+                                                                "type": "string"
+                                                            },
+                                                            "auditActorType": {
+                                                                "type": "string"
+                                                            },
+                                                            "ipAddress": {},
+                                                            "remoteTenantId": {},
+                                                            "remoteUserId": {},
+                                                            "servicePrincipalName": {},
+                                                            "type": {
+                                                                "type": "string"
+                                                            },
+                                                            "userId": {
+                                                                "type": "string"
+                                                            },
+                                                            "userPermissions": {
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "userPrincipalName": {
+                                                                "type": "string"
+                                                            },
+                                                            "userRoleScopeTags": {
+                                                                "type": "array"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "category": {
+                                                        "type": "string"
+                                                    },
+                                                    "componentName": {
+                                                        "type": "string"
+                                                    },
+                                                    "correlationId": {
+                                                        "type": "string"
+                                                    },
+                                                    "displayName": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "resources": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "auditResourceType": {
+                                                                    "type": "string"
+                                                                },
+                                                                "displayName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "modifiedProperties": {
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "displayName": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "newValue": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "oldValue": {}
+                                                                        },
+                                                                        "required": [
+                                                                            "displayName",
+                                                                            "oldValue",
+                                                                            "newValue"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "resourceId": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "displayName",
+                                                                "type",
+                                                                "auditResourceType",
+                                                                "resourceId",
+                                                                "modifiedProperties"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "displayName",
+                                                    "componentName",
+                                                    "activity",
+                                                    "activityDateTime",
+                                                    "activityType",
+                                                    "activityOperationType",
+                                                    "activityResult",
+                                                    "correlationId",
+                                                    "category",
+                                                    "actor",
+                                                    "resources"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "keyvault": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('keyVaultName'))]",
+                                "connectionName": "keyvault",
+                                "connectionProperties": {
+                                    "authentication": {
+                                        "type": "ManagedServiceIdentity"
+                                    }
+                                },
+                                "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'keyvault')]"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
