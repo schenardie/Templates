@@ -1147,8 +1147,8 @@
                                                 }
                                             }
                                         },
-                                        "macOSLobApp_": {
-                                            "case": "macOSLobApp",
+                                        "MacOsLobAppAssignmentSettings": {
+                                            "case": "MacOsLobAppAssignmentSettings",
                                             "actions": {
                                                 "Set_variable_8": {
                                                     "runAfter": {},
@@ -1156,45 +1156,6 @@
                                                     "inputs": {
                                                         "name": "Application Type",
                                                         "value": "macOS line-of-business app"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "macOSPkgApp": {
-                                            "case": "macOSPkgApp",
-                                            "actions": {
-                                                "Set_variable_6": {
-                                                    "runAfter": {},
-                                                    "type": "SetVariable",
-                                                    "inputs": {
-                                                        "name": "Application Type",
-                                                        "value": "macOS app (PKG)"
-                                                    }
-                                                }
-                                            }
-                                        },
-																		  
-																					
-														
-																	
-																   
-																		  
-															   
-																				   
-																									
-													 
-												 
-											 
-										  
-                                        "macOsVppApp_": {
-                                            "case": "macOsVppApp",
-                                            "actions": {
-                                                "Set_variable_7": {
-                                                    "runAfter": {},
-                                                    "type": "SetVariable",
-                                                    "inputs": {
-                                                        "name": "Application Type",
-                                                        "value": "macOS volume purchase program app"
                                                     }
                                                 }
                                             }
@@ -1299,8 +1260,8 @@
                                                 }
                                             }
                                         },
-                                        "macOSLobApp": {
-                                            "case": "macOSLobApp",
+                                        "MacOSLobApp": {
+                                            "case": "MacOSLobApp",
                                             "actions": {
                                                 "Set_variable_16": {
                                                     "runAfter": {},
