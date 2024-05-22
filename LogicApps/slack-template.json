@@ -1079,8 +1079,8 @@
                                                 }
                                             }
                                         },
-                                        "iosVppApp": {
-                                            "case": "iosVppApp",
+                                        "iosVppAppAssignmentSettings": {
+                                            "case": "iosVppAppAssignmentSettings",
                                             "actions": {
                                                 "Set_variable_5": {
                                                     "runAfter": {},
