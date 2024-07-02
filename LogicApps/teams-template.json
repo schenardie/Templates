@@ -1645,7 +1645,10 @@
                                                                 "type": "string"
                                                             },
                                                             "userId": {
-                                                                "type": "string"
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
                                                             },
                                                             "userPermissions": {
                                                                 "items": {
@@ -1654,7 +1657,10 @@
                                                                 "type": "array"
                                                             },
                                                             "userPrincipalName": {
-                                                                "type": "string"
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
                                                             },
                                                             "userRoleScopeTags": {
                                                                 "type": "array"
