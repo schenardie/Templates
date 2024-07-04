@@ -1389,6 +1389,13 @@
                         },
                         "Get_Teams_Webhook_secret": {
                             "runAfter": {},
+                            "runtimeConfiguration": {
+                                "secureData": {
+                                    "properties": [
+                                        "outputs"
+                                    ]
+                                }
+                            },
                             "type": "ApiConnection",
                             "inputs": {
                                 "host": {
