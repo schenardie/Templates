@@ -1,0 +1,452 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "keyVaultName": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+            "description": "Key Vaults need to be globally unique."
+            }
+        },
+        "LogicAppName": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "SlackWebhook": {
+            "type": "securestring",
+            "metadata": {
+              "description": "Slack Webhook"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+              "description": "Location for all resources."
+            }
+        },
+        "Timezone": {
+            "type": "string",
+            "defaultValue": "AUS Eastern Standard Time",
+            "metadata": {
+              "description": "Please refer to Timzone full name."
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2023-07-01",
+            "name": "[parameters('keyVaultName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "Standard"
+                },
+                "tenantId": "[subscription().tenantid]",
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantid]",
+                        "objectId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('LogicAppName')), '2019-05-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "certificates": [],
+                            "keys": [],
+                            "secrets": [
+                                "get",
+                                "list"
+                            ]
+                        }
+                    }
+                ],
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "enableRbacAuthorization": false,
+                "enablePurgeProtection": true,
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[parameters('keyVaultName')]",
+            "location": "[parameters('location')]",
+            "kind": "V1",
+            "properties": {
+                "displayName": "[parameters('keyVaultName')]",
+                "parameterValueType": "Alternative",
+                "alternativeParameterValues": {
+                    "vaultName": "[parameters('keyVaultName')]"
+                },
+                "customParameterValues": {},
+                "api": {
+                    "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'keyvault')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "apiVersion": "2023-07-01",
+            "name": "[concat(parameters('keyVaultName'), '/SlackWebhook')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            ],
+            "properties": {
+                "value": "[parameters('SlackWebhook')]",
+                "attributes": {
+                    "enabled": true
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('LogicAppName')]",
+            "location": "[parameters('location')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Disabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        },
+                        "recurrence": {
+                            "defaultValue": 30,
+                            "type": "Int"
+                        },
+                        "timezone": {
+                            "defaultValue": "[parameters('Timezone')]",
+                            "type": "String"
+                        }
+                    },
+                    "triggers": {
+                        "Recurrence": {
+                            "recurrence": {
+                                "frequency": "Week",
+                                "interval": 1,
+                                "schedule": {
+                                    "hours": [
+                                        "9",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14",
+                                        "15",
+                                        "16"
+                                    ],
+                                    "minutes": [
+                                        0,
+                                        5,
+                                        10,
+                                        15,
+                                        20,
+                                        25,
+                                        30,
+                                        35,
+                                        40,
+                                        45,
+                                        50,
+                                        55
+                                    ],
+                                    "weekDays": [
+                                        "Monday",
+                                        "Tuesday",
+                                        "Wednesday",
+                                        "Thursday",
+                                        "Friday"
+                                    ]
+                                },
+                                "timeZone": "[parameters('Timezone')]"
+                            },
+                            "evaluatedRecurrence": {
+                                "frequency": "Week",
+                                "interval": 1,
+                                "schedule": {
+                                    "hours": [
+                                        "9",
+                                        "10",
+                                        "11",
+                                        "12",
+                                        "13",
+                                        "14",
+                                        "15",
+                                        "16"
+                                    ],
+                                    "minutes": [
+                                        0,
+                                        5,
+                                        10,
+                                        15,
+                                        20,
+                                        25,
+                                        30,
+                                        35,
+                                        40,
+                                        45,
+                                        50,
+                                        55
+                                    ],
+                                    "weekDays": [
+                                        "Monday",
+                                        "Tuesday",
+                                        "Wednesday",
+                                        "Thursday",
+                                        "Friday"
+                                    ]
+                                },
+                                "timeZone": "[parameters('Timezone')]"
+                            },
+                            "type": "Recurrence"
+                        }
+                    },
+                    "actions": {
+                        "For_each_elevation_request": {
+                            "foreach": "@body('Parse_JSON_EPM_Elevation_Requests')?['value']",
+                            "actions": {
+                                "Slack_Notif_EPM_Elevation_Request": {
+                                    "runAfter": {},
+                                    "type": "Http",
+                                    "inputs": {
+                                        "body": {
+                                            "blocks": [
+                                                {
+                                                    "text": {
+                                                        "text": "New EPM elevation request",
+                                                        "type": "plain_text"
+                                                    },
+                                                    "type": "header"
+                                                },
+                                                {
+                                                    "fields": [
+                                                        {
+                                                            "text": "*User:*\n@{items('For_each_elevation_request')?['requestedByUserPrincipalName']}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Request Justification:*\n @{items('For_each_elevation_request')?['requestJustification']}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*File Name:*\n @{items('For_each_elevation_request')?['applicationDetail']?['fileName']}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Publisher:*\n @{items('For_each_elevation_request')?['applicationDetail']?['publisherName']}",
+                                                            "type": "mrkdwn"
+                                                        }
+                                                    ],
+                                                    "type": "section"
+                                                },
+                                                {
+                                                    "text": {
+                                                        "text": "*File Hash:*\n @{items('For_each_elevation_request')?['applicationDetail']?['fileHash']}",
+                                                        "type": "mrkdwn"
+                                                    },
+                                                    "type": "section"
+                                                },
+                                                {
+                                                    "elements": [
+                                                        {
+                                                            "text": {
+                                                                "emoji": true,
+                                                                "text": "More Info",
+                                                                "type": "plain_text"
+                                                            },
+                                                            "type": "button",
+                                                            "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Workflows/SecurityManagementMenu/~/epm",
+                                                            "value": "click_me_123"
+                                                        }
+                                                    ],
+                                                    "type": "actions"
+                                                }
+                                            ]
+                                        },
+                                        "headers": {
+                                            "Content-type": "application/json"
+                                        },
+                                        "method": "POST",
+                                        "uri": "@body('Get_Slack_Webhook_secret')?['value']"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Parse_JSON_EPM_Elevation_Requests": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Get_Slack_Webhook_secret": {
+                            "runAfter": {},
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/secrets/@{encodeURIComponent('SlackWebhook')}/value"
+                            }
+                        },
+                        "HTTP_Get_EPM_Elevation_Requests": {
+                            "runAfter": {
+                                "Get_Slack_Webhook_secret": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "authentication": {
+                                    "audience": "https://graph.microsoft.com",
+                                    "type": "ManagedServiceIdentity"
+                                },
+                                "method": "GET",
+                                "queries": {
+                                    "$filter": "status eq 'pending' and requestCreatedDateTime gt @{formatDateTime(subtractFromTime(utcNow(),int(parameters('recurrence')),'Minute'),'yyyy-MM-ddTHH:mm:ssZ')}"
+                                },
+                                "uri": "https://graph.microsoft.com/beta/deviceManagement/elevationRequests"
+                            }
+                        },
+                        "Parse_JSON_EPM_Elevation_Requests": {
+                            "runAfter": {
+                                "HTTP_Get_EPM_Elevation_Requests": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@body('HTTP_Get_EPM_Elevation_Requests')",
+                                "schema": {
+                                    "properties": {
+                                        "@@odata.context": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "items": {
+                                                "properties": {
+                                                    "applicationDetail": {
+                                                        "properties": {
+                                                            "fileDescription": {},
+                                                            "fileHash": {
+                                                                "type": "string"
+                                                            },
+                                                            "fileName": {
+                                                                "type": "string"
+                                                            },
+                                                            "filePath": {
+                                                                "type": "string"
+                                                            },
+                                                            "productInternalName": {},
+                                                            "productName": {
+                                                                "type": "string"
+                                                            },
+                                                            "productVersion": {
+                                                                "type": "string"
+                                                            },
+                                                            "publisherCert": {
+                                                                "type": "string"
+                                                            },
+                                                            "publisherName": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "deviceName": {},
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestCreatedDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestExpiryDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestJustification": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestLastModifiedDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestedByUserId": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestedByUserPrincipalName": {
+                                                        "type": "string"
+                                                    },
+                                                    "requestedOnDeviceId": {
+                                                        "type": "string"
+                                                    },
+                                                    "reviewCompletedByUserId": {
+                                                        "type": "string"
+                                                    },
+                                                    "reviewCompletedByUserPrincipalName": {},
+                                                    "reviewCompletedDateTime": {},
+                                                    "reviewerJustification": {},
+                                                    "status": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "requestedByUserId",
+                                                    "requestedOnDeviceId",
+                                                    "requestedByUserPrincipalName",
+                                                    "deviceName",
+                                                    "requestCreatedDateTime",
+                                                    "requestLastModifiedDateTime",
+                                                    "requestJustification",
+                                                    "status",
+                                                    "reviewCompletedByUserId",
+                                                    "reviewCompletedByUserPrincipalName",
+                                                    "reviewCompletedDateTime",
+                                                    "requestExpiryDateTime",
+                                                    "reviewerJustification",
+                                                    "applicationDetail"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "keyvault": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('keyVaultName'))]",
+                                "connectionName": "keyvault",
+                                "connectionProperties": {
+                                    "authentication": {
+                                        "type": "ManagedServiceIdentity"
+                                    }
+                                },
+                                "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'keyvault')]"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
