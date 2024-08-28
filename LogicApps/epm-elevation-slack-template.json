@@ -35,7 +35,7 @@
         },
         "Recurrence": {
             "type": "int",
-            "defaultValue": 1,
+            "defaultValue": 5,
             "metadata": {
               "description": "Please define how often you would like your logic app to run (in minutes)"
             }
