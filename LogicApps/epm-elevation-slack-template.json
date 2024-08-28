@@ -32,6 +32,13 @@
             "metadata": {
               "description": "Please refer to Timzone full name."
             }
+        },
+        "Recurrence": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+              "description": "Please define how often you would like your logic app to run (in minutes)"
+            }
         }
     },
     "variables": {},
@@ -123,7 +130,7 @@
                             "type": "Object"
                         },
                         "recurrence": {
-                            "defaultValue": 30,
+                            "defaultValue": 5,
                             "type": "Int"
                         },
                         "timezone": {
@@ -134,80 +141,12 @@
                     "triggers": {
                         "Recurrence": {
                             "recurrence": {
-                                "frequency": "Week",
-                                "interval": 1,
-                                "schedule": {
-                                    "hours": [
-                                        "9",
-                                        "10",
-                                        "11",
-                                        "12",
-                                        "13",
-                                        "14",
-                                        "15",
-                                        "16"
-                                    ],
-                                    "minutes": [
-                                        0,
-                                        5,
-                                        10,
-                                        15,
-                                        20,
-                                        25,
-                                        30,
-                                        35,
-                                        40,
-                                        45,
-                                        50,
-                                        55
-                                    ],
-                                    "weekDays": [
-                                        "Monday",
-                                        "Tuesday",
-                                        "Wednesday",
-                                        "Thursday",
-                                        "Friday"
-                                    ]
-                                },
-                                "timeZone": "[parameters('Timezone')]"
+                                "frequency": "Minute",
+                                "interval": "@parameters('recurrence')"
                             },
                             "evaluatedRecurrence": {
-                                "frequency": "Week",
-                                "interval": 1,
-                                "schedule": {
-                                    "hours": [
-                                        "9",
-                                        "10",
-                                        "11",
-                                        "12",
-                                        "13",
-                                        "14",
-                                        "15",
-                                        "16"
-                                    ],
-                                    "minutes": [
-                                        0,
-                                        5,
-                                        10,
-                                        15,
-                                        20,
-                                        25,
-                                        30,
-                                        35,
-                                        40,
-                                        45,
-                                        50,
-                                        55
-                                    ],
-                                    "weekDays": [
-                                        "Monday",
-                                        "Tuesday",
-                                        "Wednesday",
-                                        "Thursday",
-                                        "Friday"
-                                    ]
-                                },
-                                "timeZone": "[parameters('Timezone')]"
+                                "frequency": "Minute",
+                                "interval": "@parameters('recurrence')"
                             },
                             "type": "Recurrence"
                         }
