@@ -13,10 +13,10 @@
             "defaultValue": "",
             "type": "String"
         },
-        "SlackWebhook": {
+        "TeamsWebhook": {
             "type": "securestring",
             "metadata": {
-              "description": "Slack Webhook"
+              "description": "Teams Webhook"
             }
         },
         "location": {
@@ -99,13 +99,13 @@
         {
             "type": "Microsoft.KeyVault/vaults/secrets",
             "apiVersion": "2023-07-01",
-            "name": "[concat(parameters('keyVaultName'), '/SlackWebhook')]",
+            "name": "[concat(parameters('keyVaultName'), '/TeamsWebhook')]",
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
             ],
             "properties": {
-                "value": "[parameters('SlackWebhook')]",
+                "value": "[parameters('TeamsWebhook')]",
                 "attributes": {
                     "enabled": true
                 }
@@ -153,74 +153,81 @@
                     },
                     "actions": {
                         "For_each_elevation_request": {
-                            "foreach": "@body('Parse_JSON_EPM_Elevation_Requests')?['value']",
                             "actions": {
-                                "Slack_Notif_EPM_Elevation_Request": {
-                                    "runAfter": {},
-                                    "type": "Http",
+                                "Teams_Notif_EPM_Elevation_Request": {
                                     "inputs": {
                                         "body": {
-                                            "blocks": [
+                                            "attachments": [
                                                 {
-                                                    "text": {
-                                                        "text": "New EPM elevation request",
-                                                        "type": "plain_text"
-                                                    },
-                                                    "type": "header"
-                                                },
-                                                {
-                                                    "fields": [
-                                                        {
-                                                            "text": "*User:*\n@{items('For_each_elevation_request')?['requestedByUserPrincipalName']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*Request Justification:*\n @{items('For_each_elevation_request')?['requestJustification']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*File Name:*\n @{items('For_each_elevation_request')?['applicationDetail']?['fileName']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*Publisher:*\n @{items('For_each_elevation_request')?['applicationDetail']?['publisherName']}",
-                                                            "type": "mrkdwn"
-                                                        }
-                                                    ],
-                                                    "type": "section"
-                                                },
-                                                {
-                                                    "text": {
-                                                        "text": "*File Hash:*\n @{items('For_each_elevation_request')?['applicationDetail']?['fileHash']}",
-                                                        "type": "mrkdwn"
-                                                    },
-                                                    "type": "section"
-                                                },
-                                                {
-                                                    "elements": [
-                                                        {
-                                                            "text": {
-                                                                "emoji": true,
-                                                                "text": "More Info",
-                                                                "type": "plain_text"
+                                                    "content": {
+                                                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                                        "actions": [
+                                                            {
+                                                                "title": "More Info",
+                                                                "type": "Action.OpenUrl",
+                                                                "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Workflows/SecurityManagementMenu/~/epm"
+                                                            }
+                                                        ],
+                                                        "body": [
+                                                            {
+                                                                "id": "acTitle",
+                                                                "size": "large",
+                                                                "text": "New EPM elevation request",
+                                                                "type": "TextBlock",
+                                                                "weight": "bolder",
+                                                                "wrap": true
                                                             },
-                                                            "type": "button",
-                                                            "url": "https://intune.microsoft.com/#view/Microsoft_Intune_Workflows/SecurityManagementMenu/~/epm",
-                                                            "value": "click_me_123"
-                                                        }
-                                                    ],
-                                                    "type": "actions"
+                                                            {
+                                                                "facts": [
+                                                                    {
+                                                                        "title": "User:",
+                                                                        "value": "@{items('For_each_elevation_request')?['requestedByUserPrincipalName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Request Justification:",
+                                                                        "value": "@{items('For_each_elevation_request')?['requestJustification']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "File Name:",
+                                                                        "value": "@{items('For_each_elevation_request')?['applicationDetail']?['fileName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Publisher:",
+                                                                        "value": "@{items('For_each_elevation_request')?['applicationDetail']?['publisherName']}"
+                                                                    }
+                                                                ],
+                                                                "id": "acFactSet",
+                                                                "type": "FactSet"
+                                                            },
+                                                            {
+                                                                "text": "Hash: @{items('For_each_elevation_request')?['applicationDetail']?['fileHash']}",
+                                                                "type": "TextBlock",
+                                                                "wrap": false
+                                                            }
+                                                        ],
+                                                        "msteams": {
+                                                            "width": "full"
+                                                        },
+                                                        "type": "AdaptiveCard",
+                                                        "version": "1.0"
+                                                    },
+                                                    "contentType": "application/vnd.microsoft.card.adaptive",
+                                                    "contentUrl": null
                                                 }
-                                            ]
+                                            ],
+                                            "type": "message"
                                         },
                                         "headers": {
                                             "Content-type": "application/json"
                                         },
                                         "method": "POST",
-                                        "uri": "@body('Get_Slack_Webhook_secret')?['value']"
-                                    }
+                                        "uri": "@body('Get_Teams_Webhook_secret')?['value']"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
                                 }
                             },
+                            "foreach": "@body('Parse_JSON_EPM_Elevation_Requests')?['value']",
                             "runAfter": {
                                 "Parse_JSON_EPM_Elevation_Requests": [
                                     "Succeeded"
@@ -228,7 +235,16 @@
                             },
                             "type": "Foreach"
                         },
-                        "Get_Slack_Webhook_secret": {
+                        "Get_Teams_Webhook_secret": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/secrets/@{encodeURIComponent('TeamsWebhook')}/value"
+                            },
                             "runAfter": {},
                             "runtimeConfiguration": {
                                 "secureData": {
@@ -237,24 +253,9 @@
                                     ]
                                 }
                             },
-                            "type": "ApiConnection",
-                            "inputs": {
-                                "host": {
-                                    "connection": {
-                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
-                                    }
-                                },
-                                "method": "get",
-                                "path": "/secrets/@{encodeURIComponent('SlackWebhook')}/value"
-                            }
+                            "type": "ApiConnection"
                         },
                         "HTTP_Get_EPM_Elevation_Requests": {
-                            "runAfter": {
-                                "Get_Slack_Webhook_secret": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Http",
                             "inputs": {
                                 "authentication": {
                                     "audience": "https://graph.microsoft.com",
@@ -265,15 +266,15 @@
                                     "$filter": "status eq 'pending' and requestCreatedDateTime gt @{formatDateTime(subtractFromTime(utcNow(),int(parameters('recurrence')),'Minute'),'yyyy-MM-ddTHH:mm:ssZ')}"
                                 },
                                 "uri": "https://graph.microsoft.com/beta/deviceManagement/elevationRequests"
-                            }
-                        },
-                        "Parse_JSON_EPM_Elevation_Requests": {
+                            },
                             "runAfter": {
-                                "HTTP_Get_EPM_Elevation_Requests": [
+                                "Get_Teams_Webhook_secret": [
                                     "Succeeded"
                                 ]
                             },
-                            "type": "ParseJson",
+                            "type": "Http"
+                        },
+                        "Parse_JSON_EPM_Elevation_Requests": {
                             "inputs": {
                                 "content": "@body('HTTP_Get_EPM_Elevation_Requests')",
                                 "schema": {
@@ -371,7 +372,13 @@
                                     },
                                     "type": "object"
                                 }
-                            }
+                            },
+                            "runAfter": {
+                                "HTTP_Get_EPM_Elevation_Requests": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson"
                         }
                     },
                     "outputs": {}
