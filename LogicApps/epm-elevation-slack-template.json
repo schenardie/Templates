@@ -185,6 +185,14 @@
                                                         {
                                                             "text": "*Publisher:*\n @{items('For_each_elevation_request')?['applicationDetail']?['publisherName']}",
                                                             "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Request creation:*\n@{formatDateTime(convertTimeZone(items('For_each_elevation_request')?['requestCreatedDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                            "type": "mrkdwn"
+                                                        },
+                                                        {
+                                                            "text": "*Request expiration:*\n @{formatDateTime(convertTimeZone(items('For_each_elevation_request')?['requestExpiryDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                            "type": "mrkdwn"
                                                         }
                                                     ],
                                                     "type": "section"

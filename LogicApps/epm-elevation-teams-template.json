@@ -194,6 +194,14 @@
                                                                     {
                                                                         "title": "Publisher:",
                                                                         "value": "@{items('For_each_elevation_request')?['applicationDetail']?['publisherName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Request creation:",
+                                                                        "value": "@{formatDateTime(convertTimeZone(items('For_each_elevation_request')?['requestCreatedDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Request expiration:",
+                                                                        "value": "@{formatDateTime(convertTimeZone(items('For_each_elevation_request')?['requestExpiryDateTime'], 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}"
                                                                     }
                                                                 ],
                                                                 "id": "acFactSet",
