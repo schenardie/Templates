@@ -221,7 +221,7 @@
                                             "blocks": [
                                                 {
                                                     "text": {
-                                                        "text": "@{if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), ':azureresources: New PIM elevation request for Azure resources :azureresources:', if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), ':entra: New PIM elevation request for Microsoft Entra Roles :entra:', if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), ':groups: New PIM elevation request for Groups :groups:', '')))}",
+                                                        "text": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), ':azureresources: New PIM elevation request for Azure resources :azureresources:', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), ':entra: New PIM elevation request for Microsoft Entra Roles :entra:', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), ':groups: New PIM elevation request for Groups :groups:', '')))}",
                                                         "type": "plain_text"
                                                     },
                                                     "type": "header"
@@ -229,27 +229,27 @@
                                                 {
                                                     "fields": [
                                                         {
-                                                            "text": "*User:*\n@{items('or_each_activation_request')?['initiatedBy']?['user']?['userPrincipalName']}",
+                                                            "text": "*User:*\n@{items('For_each_activation_request')?['initiatedBy']?['user']?['userPrincipalName']}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*@{if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), 'Azure Role', if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), 'Entra Role', if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), 'Membership Type', '')))}:*\n @{items('or_each_activation_request')?['targetResources'][0]['displayName']}",
+                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Azure Role', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Entra Role', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Membership Type', '')))}:*\n @{items('For_each_activation_request')?['targetResources'][0]['displayName']}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*@{if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:*\n @{items('or_each_activation_request')?['targetResources'][3]['displayName']}",
+                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:*\n @{items('For_each_activation_request')?['targetResources'][3]['displayName']}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*Justification:*\n @{items('or_each_activation_request')?['resultReason']}",
+                                                            "text": "*Justification:*\n @{items('For_each_activation_request')?['resultReason']}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*Start Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), items('or_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), items('or_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), items('or_each_activation_request')?['additionalDetails'][2]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                            "text": "*Start Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][2]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*Expiration Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), items('or_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), items('or_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), items('or_each_activation_request')?['additionalDetails'][3]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
+                                                            "text": "*Expiration Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
                                                             "type": "mrkdwn"
                                                         }
                                                     ],
@@ -264,7 +264,7 @@
                                                                 "type": "plain_text"
                                                             },
                                                             "type": "button",
-                                                            "url": "https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ApproveRequestMenuBlade/~/@{if(equals(items('or_each_activation_request')?['category'], 'ResourceManagement'), 'azurerbac', if(equals(items('or_each_activation_request')?['category'], 'RoleManagement'), 'aadmigratedroles', if(equals(items('or_each_activation_request')?['category'], 'GroupManagement'), 'aadgroup', '')))}",
+                                                            "url": "https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ApproveRequestMenuBlade/~/@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'azurerbac', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'aadmigratedroles', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'aadgroup', '')))}",
                                                             "value": "click_me_123"
                                                         }
                                                     ],
