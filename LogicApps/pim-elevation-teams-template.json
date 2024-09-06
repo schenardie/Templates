@@ -13,10 +13,10 @@
             "defaultValue": "",
             "type": "String"
         },
-        "SlackWebhook": {
+        "TeamsWebhook": {
             "type": "securestring",
             "metadata": {
-              "description": "Slack Webhook"
+              "description": "Teams Webhook"
             }
         },
         "location": {
@@ -92,13 +92,13 @@
         {
             "type": "Microsoft.KeyVault/vaults/secrets",
             "apiVersion": "2023-07-01",
-            "name": "[concat(parameters('keyVaultName'), '/SlackWebhook')]",
+            "name": "[concat(parameters('keyVaultName'), '/TeamsWebhook')]",
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
             ],
             "properties": {
-                "value": "[parameters('SlackWebhook')]",
+                "value": "[parameters('TeamsWebhook')]",
                 "attributes": {
                     "enabled": true
                 }
@@ -116,97 +116,79 @@
                 "state": "Disabled",
                 "definition": {
                     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
-                    "contentVersion": "1.0.0.0",
-                    "parameters": {
-                        "$connections": {
-                            "defaultValue": {},
-                            "type": "Object"
-                        },
-                        "timezone": {
-                            "defaultValue": "[parameters('Timezone')]",
-                            "type": "String"
-                        }
-                    },
-                    "triggers": {
-                        "Recurrence": {
-                            "recurrence": {
-                                "frequency": "Minute",
-                                "interval": 5
-                            },
-                            "type": "Recurrence"
-                        }
-                    },
                     "actions": {
                         "For_each_activation_request": {
-                            "foreach": "@body('Parse_JSON_PIM_Activation_Requests')?['value']",
                             "actions": {
-                                "Slack_Notif_PIM_Activation_Request": {
-                                    "runAfter": {},
-                                    "type": "Http",
+                                "Teams_Notif_PIM_Activation_Request": {
                                     "inputs": {
                                         "body": {
-                                            "blocks": [
+                                            "attachments": [
                                                 {
-                                                    "text": {
-                                                        "text": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), ':azureresources: New PIM elevation request for Azure resources :azureresources:', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), ':entra: New PIM elevation request for Microsoft Entra Roles :entra:', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), ':groups: New PIM elevation request for Groups :groups:', '')))}",
-                                                        "type": "plain_text"
-                                                    },
-                                                    "type": "header"
-                                                },
-                                                {
-                                                    "fields": [
-                                                        {
-                                                            "text": "*User:*\n@{items('For_each_activation_request')?['initiatedBy']?['user']?['userPrincipalName']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Azure Role', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Entra Role', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Membership Type', '')))}:*\n @{items('For_each_activation_request')?['targetResources'][0]['displayName']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:*\n @{items('For_each_activation_request')?['targetResources'][3]['displayName']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*Justification:*\n @{items('For_each_activation_request')?['resultReason']}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*Start Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][2]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
-                                                            "type": "mrkdwn"
-                                                        },
-                                                        {
-                                                            "text": "*Expiration Time:*\n @{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}",
-                                                            "type": "mrkdwn"
-                                                        }
-                                                    ],
-                                                    "type": "section"
-                                                },
-                                                {
-                                                    "elements": [
-                                                        {
-                                                            "text": {
-                                                                "emoji": true,
-                                                                "text": "More Info",
-                                                                "type": "plain_text"
+                                                    "content": {
+                                                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                                        "body": [
+                                                            {
+                                                                "id": "acTitle",
+                                                                "size": "large",
+                                                                "text": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'New PIM elevation request for Azure resources', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'New PIM elevation request for Microsoft Entra Roles', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'New PIM elevation request for Groups', '')))}",
+                                                                "type": "TextBlock",
+                                                                "weight": "bolder",
+                                                                "wrap": true
                                                             },
-                                                            "type": "button",
-                                                            "url": "https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ApproveRequestMenuBlade/~/@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'azurerbac', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'aadmigratedroles', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'aadgroup', '')))}",
-                                                            "value": "click_me_123"
-                                                        }
-                                                    ],
-                                                    "type": "actions"
+                                                            {
+                                                                "facts": [
+                                                                    {
+                                                                        "title": "*User:*",
+                                                                        "value": "@{items('For_each_activation_request')?['initiatedBy']?['user']?['userPrincipalName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Azure Role', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Entra Role', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Membership Type', '')))}:",
+                                                                        "value": " @{items('For_each_activation_request')?['targetResources'][0]['displayName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:",
+                                                                        "value": "@{items('For_each_activation_request')?['targetResources'][3]['displayName']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Justification:",
+                                                                        "value": "@{items('For_each_activation_request')?['resultReason']}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Start Time:",
+                                                                        "value": "@{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][2]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}"
+                                                                    },
+                                                                    {
+                                                                        "title": "Expiration Time:",
+                                                                        "value": "@{formatDateTime(convertTimeZone(if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['additionalDetails'][4]['value'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['additionalDetails'][3]['value'], ''))), 'UTC', parameters('timezone')), 'dd/MM/yyyy HH:mm:ss')}"
+                                                                    }
+                                                                ],
+                                                                "id": "acFactSet",
+                                                                "type": "FactSet"
+                                                            }
+                                                        ],
+                                                        "msteams": {
+                                                            "width": "full"
+                                                        },
+                                                        "type": "AdaptiveCard",
+                                                        "version": "1.0"
+                                                    },
+                                                    "contentType": "application/vnd.microsoft.card.adaptive",
+                                                    "contentUrl": null
                                                 }
-                                            ]
+                                            ],
+                                            "type": "message"
                                         },
                                         "headers": {
                                             "Content-type": "application/json"
                                         },
                                         "method": "POST",
-                                        "uri": "@body('Get_Slack_Webhook_secret')?['value']"
-                                    }
+                                        "uri": "@body('Get_Teams_Webhook_secret')?['value']"
+                                    },
+                                    "runAfter": {},
+                                    "type": "Http"
                                 }
                             },
+                            "foreach": "@body('Parse_JSON_PIM_Activation_Requests')?['value']",
                             "runAfter": {
                                 "Parse_JSON_PIM_Activation_Requests": [
                                     "Succeeded"
@@ -214,7 +196,16 @@
                             },
                             "type": "Foreach"
                         },
-                        "Get_Slack_Webhook_secret": {
+                        "Get_Teams_Webhook_secret": {
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
+                                    }
+                                },
+                                "method": "get",
+                                "path": "/secrets/@{encodeURIComponent('TeamsWebhook')}/value"
+                            },
                             "runAfter": {},
                             "runtimeConfiguration": {
                                 "secureData": {
@@ -223,24 +214,9 @@
                                     ]
                                 }
                             },
-                            "type": "ApiConnection",
-                            "inputs": {
-                                "host": {
-                                    "connection": {
-                                        "name": "@parameters('$connections')['keyvault']['connectionId']"
-                                    }
-                                },
-                                "method": "get",
-                                "path": "/secrets/@{encodeURIComponent('SlackWebhook')}/value"
-                            }
+                            "type": "ApiConnection"
                         },
                         "HTTP_Get_PIM_Activation_Requests": {
-                            "runAfter": {
-                                "Get_Slack_Webhook_secret": [
-                                    "Succeeded"
-                                ]
-                            },
-                            "type": "Http",
                             "inputs": {
                                 "authentication": {
                                     "audience": "https://graph.microsoft.com",
@@ -251,15 +227,15 @@
                                     "$filter": "activityDisplayName eq 'Add member to role approval requested (PIM activation)' and activityDateTime ge @{subtractFromTime(utcNow(),10,'Minute')} and activityDateTime le @{subtractFromTime(utcNow(),5,'Minute')}"
                                 },
                                 "uri": "https://graph.microsoft.com/beta/auditLogs/directoryAudits"
-                            }
-                        },
-                        "Parse_JSON_PIM_Activation_Requests": {
+                            },
                             "runAfter": {
-                                "HTTP_Get_PIM_Activation_Requests": [
+                                "Get_Teams_Webhook_secret": [
                                     "Succeeded"
                                 ]
                             },
-                            "type": "ParseJson",
+                            "type": "Http"
+                        },
+                        "Parse_JSON_PIM_Activation_Requests": {
                             "inputs": {
                                 "content": "@body('HTTP_Get_PIM_Activation_Requests')",
                                 "schema": {
@@ -426,10 +402,36 @@
                                     },
                                     "type": "object"
                                 }
-                            }
+                            },
+                            "runAfter": {
+                                "HTTP_Get_PIM_Activation_Requests": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ParseJson"
                         }
                     },
-                    "outputs": {}
+                    "contentVersion": "1.0.0.0",
+                    "outputs": {},
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        },
+                        "timezone": {
+                            "defaultValue": "AUS Eastern Standard Time",
+                            "type": "String"
+                        }
+                    },
+                    "triggers": {
+                        "Recurrence": {
+                            "recurrence": {
+                                "frequency": "Minute",
+                                "interval": 5
+                            },
+                            "type": "Recurrence"
+                        }
+                    }
                 },
                 "parameters": {
                     "$connections": {
