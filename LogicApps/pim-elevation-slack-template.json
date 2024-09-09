@@ -148,7 +148,7 @@
                                             "blocks": [
                                                 {
                                                     "text": {
-                                                        "text": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), ':azureresources: New PIM elevation request for Azure resources :azureresources:', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), ':entra: New PIM elevation request for Microsoft Entra Roles :entra:', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), ':groups: New PIM elevation request for Groups :groups:', '')))}",
+                                                        "text": "@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'New PIM elevation request for Azure resources', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'New PIM elevation request for Microsoft Entra Roles', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'New PIM elevation request for Groups', '')))}",
                                                         "type": "plain_text"
                                                     },
                                                     "type": "header"
