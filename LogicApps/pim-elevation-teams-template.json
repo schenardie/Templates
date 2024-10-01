@@ -128,7 +128,7 @@
                                                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                                                         "actions": [
                                                             {
-                                                                "title": "Open in Intune",
+                                                                "title": "More Info",
                                                                 "type": "Action.OpenUrl",
                                                                 "url": "https://portal.azure.com/#view/Microsoft_Azure_PIMCommon/ApproveRequestMenuBlade/~/@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'azurerbac', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'aadmigratedroles', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'aadgroup', '')))}"
                                                             }
