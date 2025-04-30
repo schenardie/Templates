@@ -300,23 +300,23 @@
                                                                 "type": "string"
                                                             },
                                                             "fileName": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             },
                                                             "filePath": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             },
                                                             "productInternalName": {},
                                                             "productName": {
                                                                 "type": ["string","null"]
                                                             },
                                                             "productVersion": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             },
                                                             "publisherCert": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             },
                                                             "publisherName": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             }
                                                         },
                                                         "type": "object"
