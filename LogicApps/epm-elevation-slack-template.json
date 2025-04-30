@@ -306,7 +306,7 @@
                                                             },
                                                             "productInternalName": {},
                                                             "productName": {
-                                                                "type": "string"
+                                                                "type": ["string","null"]
                                                             },
                                                             "productVersion": {
                                                                 "type": "string"
