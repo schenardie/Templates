@@ -164,7 +164,7 @@
                                                             "type": "mrkdwn"
                                                         },
                                                         {
-                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:*\n @{items('For_each_activation_request')?['targetResources'][3]['displayName']}",
+                                                            "text": "*@{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), 'Subscription', if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), 'Tenant Name', if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), 'Group Name', '')))}:*\n @{if(equals(items('For_each_activation_request')?['category'], 'ResourceManagement'), items('For_each_activation_request')?['targetResources'][3]['displayName'], if(equals(items('For_each_activation_request')?['category'], 'RoleManagement'), items('For_each_activation_request')?['targetResources'][1]['displayName'], if(equals(items('For_each_activation_request')?['category'], 'GroupManagement'), items('For_each_activation_request')?['targetResources'][1]['displayName'], '')))}",
                                                             "type": "mrkdwn"
                                                         },
                                                         {
